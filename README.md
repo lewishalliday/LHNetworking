@@ -17,9 +17,7 @@
 ### Swift Package Manager
 
 1. In Xcode, go to **File > Swift Packages > Add Package Dependency**.
-2. Enter the repository URL:
-   <!-- Uncomment and replace with your actual repository URL -->
-   <!-- https://github.com/yourusername/LHNetworking -->
+2. Enter the repository URL: https://github.com/lewishalliday/LHNetworking
 3. Follow the prompts to add the package to your project.
 
 ## Usage
@@ -76,11 +74,11 @@ func fetchUsers() async {
 }
 ```
 
-You can also wrap the `get` function for specific API calls:
+You can also create wrapper functions to simplify usage further:
 
 ```swift
-func getTest() async throws -> User {
-    try await networkManager.get(endPoint: "/get")
+func getUsers() async throws -> [User] {
+    try await networkManager.get(endPoint: "/users")
 }
 ```
 
@@ -102,6 +100,14 @@ func createUser(name: String, email: String) async {
     } catch {
         print("Failed to create user:", error)
     }
+}
+```
+
+A simplified wrapper function can also be created for posting users:
+
+```swift
+func postUser(_ user: User) async throws -> User {
+    try await networkManager.post(endPoint: "/user", body: user)
 }
 ```
 
@@ -175,4 +181,3 @@ This mode provides insights into the URL, headers, body, and response data, whic
 ## Advanced Usage
 
 You can extend `NetworkManager` by creating custom request methods or integrating additional headers, query parameters, or other request configurations. Additionally, you can add custom error handling by implementing `NetworkManagerError`.
-
