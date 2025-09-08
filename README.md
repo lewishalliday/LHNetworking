@@ -15,7 +15,7 @@ A tiny, portable, memory‑efficient async/await HTTP client for Swift. Built on
 Add to your `Package.swift` dependencies:
 
 ```swift
-.package(url: "https://github.com/<you>/LHNetworking.git", from: "0.1.0")
+.package(url: "https://github.com/lewishalliday/LHNetworking.git", from: "0.1.0")
 ```
 
 Then add `LHNetworking` to your target dependencies.
