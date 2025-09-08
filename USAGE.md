@@ -7,7 +7,7 @@ This package is UI‑framework agnostic and works equally well with UIKit. No Sw
 Add to your Package.swift dependencies and target:
 
 ```swift
-.package(url: "https://github.com/<you>/LHNetworking.git", from: "0.1.0")
+.package(url: "https://github.com/lewishalliday/LHNetworking.git", from: "0.1.0")
 ```
 
 ## Create a Client
