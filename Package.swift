@@ -6,18 +6,24 @@ import PackageDescription
 let package = Package(
     name: "LHNetworking",
     platforms: [
-        .iOS(.v13), // Sets the minimum iOS version to 13
+        .iOS(.v13),
+        .macOS(.v10_15),
+        .tvOS(.v13),
+        .watchOS(.v6),
+        .visionOS(.v1)
     ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
-        .library(
-            name: "LHNetworking",
-            targets: ["LHNetworking"]),
+        .library(name: "LHNetworking", targets: ["LHNetworking"]),
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "LHNetworking"),
+            name: "LHNetworking",
+            path: "Sources/LHNetworking"
+        ),
+        .testTarget(
+            name: "LHNetworkingTests",
+            dependencies: ["LHNetworking"],
+            path: "Tests/LHNetworkingTests"
+        ),
     ]
 )

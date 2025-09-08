@@ -1,183 +1,66 @@
 # LHNetworking
 
-`LHNetworking` is a lightweight and modular Swift package designed to simplify network requests. It provides easy-to-use methods for making `GET`, `POST`, `PUT`, and `DELETE` requests with support for authentication, custom headers, and detailed error handling.
+A tiny, portable, memory‑efficient async/await HTTP client for Swift. Built on URLSession with zero dependencies, pluggable authentication, retries with exponential backoff, structured endpoints, and a strong test story.
 
-## Features
-- **Asynchronous Requests**: Built using Swift’s async/await for efficient, modern network handling.
-- **Modular Design**: Cleanly split into separate files, making it easy to customize and extend.
-- **Customizable Errors**: Includes default error handling, with support for custom error types.
-- **Debugging Support**: Toggle debug mode to print detailed request and response information.
+- Async/await API that back‑deploys to iOS 13+
+- Super portable: iOS, macOS, tvOS, watchOS, visionOS, Linux
+- Minimal allocations and copies; streaming‑friendly design
+- Pluggable auth (Basic, Bearer, API key; optional HMAC with CryptoKit)
+- Configurable retries with exponential backoff and jitter
+- Strongly typed `Endpoint` decoding and raw response access
+- Easy unit testing via URLProtocol stubs
 
-## Requirements
-- iOS 13.0+ 
-- Swift 5.5+
+## Install
 
-## Installation
+Add to your `Package.swift` dependencies:
 
-### Swift Package Manager
+```swift
+.package(url: "https://github.com/<you>/LHNetworking.git", from: "0.1.0")
+```
 
-1. In Xcode, go to **File > Swift Packages > Add Package Dependency**.
-2. Enter the repository URL: https://github.com/lewishalliday/LHNetworking
-3. Follow the prompts to add the package to your project.
+Then add `LHNetworking` to your target dependencies.
 
-## Usage
-
-### 1. Import LHNetworking
-
-To use `LHNetworking` in your Swift file, import the package:
+## Quick Start
 
 ```swift
 import LHNetworking
-```
 
-### 2. Initialize NetworkManager
+struct User: Decodable { let id: Int; let name: String }
 
-Create an instance of `NetworkManager` by providing a base URL and an optional token retrieval closure for authentication.
-
-#### Example Initialization
-
-```swift
-let networkManager = NetworkManager(
-    baseURL: "https://api.example.com",
-    getToken: {
-        // Logic to retrieve authentication token if required
-        return "your-auth-token" // Replace with actual token retrieval logic
-    }
+let client = URLSessionHTTPClient(
+    configuration: .init(
+        baseURL: URL(string: "https://api.example.com")!,
+        authenticator: BearerTokenAuthenticator(token: "<token>")
+    )
 )
+
+let user = try await client.send(.json(method: .get, path: "/users/1") as Endpoint<User>)
 ```
 
-- **baseURL**: The base URL for the API.
-- **getToken**: An optional asynchronous closure that returns an authentication token. This will automatically set an `Authorization` header for each request.
+For a full walkthrough, see `USAGE.md`.
 
-### 3. Making Requests
+## Endpoints
 
-`LHNetworking` provides functions for `GET`, `POST`, `PUT`, and `DELETE` requests. Each method is generic and expects a `Decodable` type for the response, making it easy to work with JSON responses directly.
+`Endpoint<Response>` describes an HTTP call and provides a parser for the response. Helpers exist for `Void`, `Data`, and `Decodable`.
 
-#### GET Request
+## Authentication
 
-Use `get` to fetch data. The response type must conform to `Decodable`.
+Use `BasicAuthenticator`, `BearerTokenAuthenticator`, `APIKeyHeaderAuthenticator`, `APIKeyQueryAuthenticator`, or compose your own via `RequestAuthenticator`.
 
-```swift
-struct User: Decodable {
-    let id: Int
-    let name: String
-    let email: String
-}
+## Retries
 
-func fetchUsers() async {
-    do {
-        let users: [User] = try await networkManager.get(endPoint: "/users", debugMode: true)
-        print("Fetched users:", users)
-    } catch {
-        print("Failed to fetch users:", error)
-    }
-}
-```
+Configure `RetryPolicy` with status codes, URL error codes, and backoff. A `Sleeper` hook makes behavior fully testable.
 
-You can also create wrapper functions to simplify usage further:
+## Testing
 
-```swift
-func getUsers() async throws -> [User] {
-    try await networkManager.get(endPoint: "/users")
-}
-```
+Use a `URLSession` configured with a custom `URLProtocol` (e.g. `MockURLProtocol`) to stub responses deterministically.
 
-#### POST Request
+## Design Notes
 
-Use `post` to create data. The request body must conform to `Encodable`.
+- Uses async/await with custom bridging to `URLSession.dataTask` for iOS 13+ and Linux compatibility.
+- Avoids unnecessary data copies, enforces small surface area.
+- Zero dependencies by default; optional `CryptoKit` for HMAC.
 
-```swift
-struct NewUser: Encodable {
-    let name: String
-    let email: String
-}
+## License
 
-func createUser(name: String, email: String) async {
-    let newUser = NewUser(name: name, email: email)
-    do {
-        let createdUser: User = try await networkManager.post(endPoint: "/users", body: newUser, debugMode: true)
-        print("Created user:", createdUser)
-    } catch {
-        print("Failed to create user:", error)
-    }
-}
-```
-
-A simplified wrapper function can also be created for posting users:
-
-```swift
-func postUser(_ user: User) async throws -> User {
-    try await networkManager.post(endPoint: "/user", body: user)
-}
-```
-
-#### PUT Request
-
-Use `put` to update data. The request body must conform to `Encodable`.
-
-```swift
-struct UpdateUser: Encodable {
-    let name: String
-    let email: String
-}
-
-func updateUser(id: Int, name: String, email: String) async {
-    let updatedUser = UpdateUser(name: name, email: email)
-    do {
-        let response: User = try await networkManager.put(endPoint: "/users/\(id)", body: updatedUser, debugMode: true)
-        print("Updated user:", response)
-    } catch {
-        print("Failed to update user:", error)
-    }
-}
-```
-
-#### DELETE Request
-
-Use `delete` to remove data. No request body is needed for `DELETE` requests.
-
-```swift
-func deleteUser(id: Int) async {
-    do {
-        let response: String = try await networkManager.delete(endPoint: "/users/\(id)", debugMode: true)
-        print("Deleted user response:", response)
-    } catch {
-        print("Failed to delete user:", error)
-    }
-}
-```
-
-### Error Handling
-
-`LHNetworking` includes a customizable error-handling system through the `NetworkManagerError` protocol. By default, it provides `DefaultNetworkError` to handle common issues such as:
-
-- **Invalid URL**: The URL could not be formed.
-- **Request Failed**: The request failed with a specific status code.
-- **Missing Data**: Expected data was missing in the response.
-- **API Error Response**: The API returned an error message.
-
-To handle errors, use `do-catch` blocks around your network calls.
-
-```swift
-do {
-    let users: [User] = try await networkManager.get(endPoint: "/users")
-} catch let error as NetworkManagerError {
-    print("Network error occurred:", error.message)
-} catch {
-    print("An unexpected error occurred:", error)
-}
-```
-
-### Debugging
-
-Enable `debugMode` in any request to print detailed request and response information.
-
-```swift
-let users: [User] = try await networkManager.get(endPoint: "/users", debugMode: true)
-```
-
-This mode provides insights into the URL, headers, body, and response data, which is helpful for troubleshooting API interactions.
-
-## Advanced Usage
-
-You can extend `NetworkManager` by creating custom request methods or integrating additional headers, query parameters, or other request configurations. Additionally, you can add custom error handling by implementing `NetworkManagerError`.
+MIT (add your preferred license here).
